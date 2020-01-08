@@ -1,0 +1,762 @@
+unit uConfiguracao;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, NxScrollControl, NxInspector, ComCtrls, NxCollection, ExtCtrls,
+  RzPanel, RzDlgBtn, NxPropertyItems, NxPropertyItemClasses, ActnList,
+  ImgList, RzButton, uDados, FMTBcd, DB, DBClient, Provider, SqlExpr,
+  JvComponent, JvBaseDlg, JvPasswordForm, Menus, JvTrayIcon;
+
+type
+  TfrmConfiguracao = class(TForm)
+    sbStatus: TStatusBar;
+    NxHeaderPanel1: TNxHeaderPanel;
+    NextInspector1: TNextInspector;
+    pnlBotoes: TRzDialogButtons;
+    nxCertificados: TNxToolbarItem;
+    nxProxy: TNxToolbarItem;
+    nxProxyServidor: TNxTextItem;
+    nxProxyUsuario: TNxTextItem;
+    nxProxySenha: TNxTextItem;
+    nxConfiguraEmail: TNxToolbarItem;
+    nxIdentificacaoUsuario: TNxToolbarItem;
+    nxNomeRemetente: TNxTextItem;
+    nxEmailRemetente: TNxTextItem;
+    nxSmtp: TNxToolbarItem;
+    nxSmtpCliente: TNxTextItem;
+    nxSmtpPorta: TNxSpinItem;
+    nxSmtpRequerSSL: TNxCheckBoxItem;
+    nxSmtpUsuario: TNxTextItem;
+    nxSmtpSenha: TNxTextItem;
+    nxRequerConf: TNxCheckBoxItem;
+    nxSmtpConfPadrao: TNxComboBoxItem;
+    imlAtivo: TImageList;
+    aclBotoes: TActionList;
+    actIncluir: TAction;
+    actExcluir: TAction;
+    actEditar: TAction;
+    RzToolbar1: TRzToolbar;
+    BtnNew: TRzToolButton;
+    BtnEdit: TRzToolButton;
+    BtnDelete: TRzToolButton;
+    sdsConfigEmail: TSQLDataSet;
+    sdsConfigEmailREMETENTE_NOME: TStringField;
+    sdsConfigEmailREMETENTE_EMAIL: TStringField;
+    sdsConfigEmailSMTP_CLIENTE: TStringField;
+    sdsConfigEmailSMTP_PORTA: TIntegerField;
+    sdsConfigEmailSMTP_REQUER_SSL: TIntegerField;
+    sdsConfigEmailSMTP_USUARIO: TStringField;
+    sdsConfigEmailSMTP_SENHA: TStringField;
+    sdsConfigEmailSOLICITAR_CONFIRMACAO: TIntegerField;
+    sdsConfigEmailBASE: TSmallintField;
+    dspConfigEmail: TDataSetProvider;
+    cdsConfigEmail: TClientDataSet;
+    cdsConfigEmailREMETENTE_NOME: TStringField;
+    cdsConfigEmailREMETENTE_EMAIL: TStringField;
+    cdsConfigEmailSMTP_CLIENTE: TStringField;
+    cdsConfigEmailSMTP_PORTA: TIntegerField;
+    cdsConfigEmailSMTP_REQUER_SSL: TIntegerField;
+    cdsConfigEmailSMTP_USUARIO: TStringField;
+    cdsConfigEmailSMTP_SENHA: TStringField;
+    cdsConfigEmailSOLICITAR_CONFIRMACAO: TIntegerField;
+    cdsConfigEmailBASE: TSmallintField;
+    dsConfigEmail: TDataSource;
+    pwdSenha: TJvPasswordForm;
+    RzSpacer3: TRzSpacer;
+    RzSpacer4: TRzSpacer;
+    BtnInternet: TRzToolButton;
+    BtnWarning: TRzToolButton;
+    actStatusContingencia: TAction;
+    actStatusWebService: TAction;
+    RzSpacer1: TRzSpacer;
+    BtnError: TRzToolButton;
+    actMensagensErro: TAction;
+    TrayIcon: TJvTrayIcon;
+    pmTrayIcon: TPopupMenu;
+    Abrirconfigurao1: TMenuItem;
+    miFechar: TMenuItem;
+    pmNFeStatus: TPopupMenu;
+    NFeStatusdoWebService1: TMenuItem;
+    NFeStatusdaContingncia1: TMenuItem;
+    procedure FormCreate(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+    procedure actEditarExecute(Sender: TObject);
+    procedure actExcluirExecute(Sender: TObject);
+    procedure NextInspector1ToolbarClick(Sender: TObject;
+      Item: TNxPropertyItem; ButtonIndex: Integer);
+    procedure cdsConfigEmailAfterInsert(DataSet: TDataSet);
+    procedure cdsConfigEmailSMTP_SENHAGetText(Sender: TField;
+      var Text: String; DisplayText: Boolean);
+    procedure cdsConfigEmailSMTP_SENHASetText(Sender: TField;
+      const Text: String);
+    procedure pnlBotoesClickCancel(Sender: TObject);
+    procedure actIncluirExecute(Sender: TObject);
+    procedure actExcluirUpdate(Sender: TObject);
+    procedure actEditarUpdate(Sender: TObject);
+    procedure actIncluirUpdate(Sender: TObject);
+    procedure pwdSenhaOk(Sender: TObject; Password: String;
+      var Accept: Boolean);
+    procedure aclBotoesUpdate(Action: TBasicAction; var Handled: Boolean);
+    procedure pnlBotoesClickOk(Sender: TObject);
+    procedure nxSmtpConfPadraoSelect(Sender: TNxPropertyItem);
+    procedure OnStatusUpdate(Sender: TObject);
+    procedure actStatusWebServiceExecute(Sender: TObject);
+    procedure actStatusContingenciaExecute(Sender: TObject);
+    procedure actMensagensErroExecute(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure Abrirconfigurao1Click(Sender: TObject);
+  private
+    { Private declarations }
+    FEmEdicao: Boolean;
+    FSairAplicacao: Boolean;
+    FCertificados: ICertificados;
+    function ConfigCertificado: TNxPropertyItem;
+    procedure AdicionarCertificado(ACertificado: ICertificadoDigital);
+    procedure CarregarCertificados;
+    procedure CarregarDados; overload;
+    procedure CarregarDados(ACertificado: ICertificadoDigital); overload;
+    procedure SalvarDados; overload;
+    procedure SalvarDados(ACertificado: ICertificadoDigital); overload;
+    procedure Habilitar(AHabilitar: Boolean);
+    procedure HabilitarItem(APropItem: TNxPropertyItem; AHabilitar: Boolean);
+  protected
+    procedure WMQueryEndSession(var Msg : TWMQueryEndSession); message WM_QueryEndSession;
+  public
+    { Public declarations }
+  end;
+
+var
+  frmConfiguracao: TfrmConfiguracao;
+
+implementation
+
+uses
+  uSrcNfe, StdCtrls, NFe_Util_TLB, NxClasses, uUtil, uInfCnpj, StrUtils, 
+  NxEdit, uMensagens;
+
+{$R *.dfm}
+
+procedure TfrmConfiguracao.AdicionarCertificado(ACertificado: ICertificadoDigital);
+const
+  C_UF = 'AC,AL,AM,AP,BA,CE,DF,ES,GO,MA,MG,MS,MT,PA,PB,PE,PI,PR,RJ,RN,RO,RR,RS,SC,SE,SP,TO';
+  C_WebService = C_UF + ',SCAN,SVAN,SVRS';
+  C_Ambiente = 'Produção,Homologação';
+var
+  Id: String;
+begin
+  with nxCertificados.AddChild(TNxTextItem) do
+  begin
+    ReadOnly := True;
+    Id := ACertificado.CnpjTitular;
+    Font.Style := Font.Style + [fsBold];
+    ValueFont.Style := ValueFont.Style + [fsBold];
+    Tag := 1;
+    Name := 'nxCertificado' + Id;
+    with AddChild(TNxMemoItem, 'Chave de acesso') as TNxMemoItem do
+    begin
+      Name := 'nxChaveAcesso' + Id;
+      ItemHeight := 48;
+      ShowMinimize := True;
+      VerticalAlignment := taAlignTop;
+      WrapKind := wkWordWrap;
+      ReadOnly := True;
+    end;
+    with AddChild(TNxTextItem, 'Titular do certificado digital') do
+    begin
+      Name := 'nxTitular' + Id;
+      ReadOnly := True;
+    end;
+    with AddChild(TNxTextItem, 'Número de série') do
+    begin
+      Name := 'nxNroSerie' + Id;
+      ReadOnly := True;
+    end;
+    with AddChild(TNxTextItem, 'Validade') do
+    begin
+      Name := 'nxValidade' + Id;
+      ReadOnly := True;
+    end;
+    with AddChild(TNxTextItem, 'Emissor do certificado digital') do
+    begin
+      Name := 'nxEmissorCertificado' + Id;
+      ReadOnly := True;
+    end;
+
+    with AddChild(TNxCheckBoxItem, 'Servidor NF-e (Nota Fiscal Eletrônica)') do
+    begin
+      Name := 'nxServidorNFe' + Id;
+      with AddChild(TNxComboBoxItem, 'Web Service') as TNxComboBoxItem do
+      begin
+        Name := 'nxNFeWebService' + Id;
+        Lines.DelimitedText := C_WebService;
+      end;
+      with AddChild(TNxComboBoxItem, 'UF desejada') as TNxComboBoxItem do
+      begin
+        Name := 'nxNFeUF' + Id;
+        Lines.DelimitedText := C_UF;
+      end;
+      with AddChild(TNxComboBoxItem, 'Ambiente') as TNxComboBoxItem do
+      begin
+        Name := 'nxAmbiente' + Id;
+        Lines.DelimitedText := C_Ambiente;
+      end;
+      with AddChild(TNxComboBoxItem, 'Contingência') as TNxComboBoxItem do
+      begin
+        Name := 'nxContingencia' + Id;
+        Lines.DelimitedText := C_WebService;
+      end;
+      with AddChild(TNxSpinItem, 'Tempo de espera (seg)') do
+      begin
+        Name := 'nxNFeTempoEspera' + Id;
+      end;
+       with AddChild(TNxComboBoxItem, 'Licença para uso em produção') do
+      begin
+        Name := 'nxNFeLicensa' + Id;
+      end;
+   end;
+
+    Collapse(True);
+  end;
+  CarregarDados(ACertificado);
+end;
+
+procedure TfrmConfiguracao.CarregarCertificados;
+var
+  I: Integer;
+begin
+  nxCertificados.DeleteChildren;
+  for I := 0 to FCertificados.Count - 1 do
+    AdicionarCertificado(FCertificados.Certificado[I]);
+  CarregarDados;
+end;
+
+procedure TfrmConfiguracao.CarregarDados(ACertificado: ICertificadoDigital);
+var
+  Id: String;
+  Item: TNxPropertyItem;
+begin
+  Id := ACertificado.CnpjTitular;
+  Item := nxCertificados.ItemByName['nxCertificado' + Id];
+  if Assigned(Item) then
+  begin
+    // Certificado
+    Item.Caption := 'CNPJ: ' + ACertificado.CnpjTitular;
+    Item.Value   := 'Válido até ' + ACertificado.ValidadeFim;
+    Item.ItemByName['nxChaveAcesso' + Id].Value := ACertificado.ChaveAcesso;
+    Item.ItemByName['nxTitular' + Id].Value := ACertificado.NomeTitular;
+    Item.ItemByName['nxNroSerie' + Id].Value := ACertificado.NumeroSerie;
+    Item.ItemByName['nxValidade' + Id].Value := 'de ' + ACertificado.ValidadeIni + ' até ' + ACertificado.ValidadeFim;
+    Item.ItemByName['nxEmissorCertificado' + Id].Value := ACertificado.Emissor;
+
+    // Servidor NF-e
+    Item := nxCertificados.ItemByName['nxServidorNFe' + Id];
+    if Assigned(Item) then
+    begin
+      Item.AsBoolean := ACertificado.UtilizaNFe = 'S';
+      TNxCheckBoxItem(Item).State := cbChecked;
+      TNxComboBoxItem(Item.ItemByName['nxNFeWebService' + Id]).Value := ACertificado.ServidorNFe.WebService;
+      TNxComboBoxItem(Item.ItemByName['nxNFeUF' + Id]).ItemIndex := TNxComboBoxItem(Item.ItemByName['nxNFeUF' + Id]).Lines.IndexOf(ACertificado.ServidorNFe.UF);
+      TNxComboBoxItem(Item.ItemByName['nxAmbiente' + Id]).ItemIndex := ACertificado.ServidorNFe.Ambiente;
+      TNxComboBoxItem(Item.ItemByName['nxContingencia' + Id]).ItemIndex := TNxComboBoxItem(Item.ItemByName['nxContingencia' + Id]).Lines.IndexOf(ACertificado.ServidorNFe.Contingencia);
+      Item.ItemByName['nxNFeTempoEspera' + Id].Value := IntToStr(ACertificado.ServidorNFe.TempoEspera);
+      Item.ItemByName['nxNFeLicensa' + Id].Value := ACertificado.ServidorNFe.Licenca;
+    end;
+  end;
+end;
+
+procedure TfrmConfiguracao.CarregarDados;
+var
+  I: Integer;
+begin
+  // Carrega os dados dos certificados
+  for I := 0 to FCertificados.Count - 1 do
+    CarregarDados(FCertificados.Certificado[I]);
+
+  // Carrega configuração de proxy
+  nxProxyServidor.Value := FCertificados.ProxyServidor;
+  nxProxyUsuario.Value  := FCertificados.ProxyUsuario;
+  nxProxySenha.Value    := FCertificados.ProxySenha;
+
+  // Carrega configuração de e-mail
+  cdsConfigEmail.Open;
+  nxNomeRemetente.Value     := cdsConfigEmailREMETENTE_NOME.AsString;
+  nxEmailRemetente.Value    := cdsConfigEmailREMETENTE_EMAIL.AsString;
+  nxSmtpCliente.Value       := cdsConfigEmailSMTP_CLIENTE.AsString;
+  nxSmtpPorta.AsInteger     := cdsConfigEmailSMTP_PORTA.AsInteger;
+  nxSmtpRequerSSL.AsInteger := cdsConfigEmailSMTP_REQUER_SSL.AsInteger;
+  nxSmtpUsuario.Value       := cdsConfigEmailSMTP_USUARIO.AsString;
+  nxSmtpSenha.Value         := cdsConfigEmailSMTP_SENHA.AsString;
+  nxRequerConf.AsInteger    := cdsConfigEmailSOLICITAR_CONFIRMACAO.AsInteger;
+end;
+
+procedure TfrmConfiguracao.FormCreate(Sender: TObject);
+begin
+  Randomize;
+
+  FEmEdicao      := False;
+  FSairAplicacao := False;
+  FCertificados  := CriarCerticados;
+
+  CarregarCertificados;
+  nxProxy.Collapse(True);
+  nxConfiguraEmail.Collapse(True);
+
+  Habilitar(False);
+end;
+
+procedure TfrmConfiguracao.SalvarDados;
+var
+  I: Integer;
+begin
+  // Salva os dados dos certificados
+  for I := 0 to FCertificados.Count - 1 do
+    SalvarDados(FCertificados.Certificado[I]);
+
+  // Salva configuração de proxy
+  FCertificados.ProxyServidor := nxProxyServidor.Value;
+  FCertificados.ProxyUsuario  := nxProxyUsuario.Value;
+  FCertificados.ProxySenha    := nxProxySenha.Value;
+
+  FCertificados.SalvarRegistro;
+
+  // Salva configuração de e-mail
+  if cdsConfigEmail.IsEmpty then
+    cdsConfigEmail.Append
+  else
+    cdsConfigEmail.Edit;
+
+  cdsConfigEmailREMETENTE_NOME.AsString         := nxNomeRemetente.Value;
+  cdsConfigEmailREMETENTE_EMAIL.AsString        := nxEmailRemetente.Value;
+  cdsConfigEmailSMTP_CLIENTE.AsString           := nxSmtpCliente.Value;
+  cdsConfigEmailSMTP_PORTA.AsString             := nxSmtpPorta.Value;
+  cdsConfigEmailSMTP_REQUER_SSL.AsInteger       := nxSmtpRequerSSL.AsInteger;
+  cdsConfigEmailSMTP_USUARIO.AsString           := nxSmtpUsuario.Value;
+  cdsConfigEmailSMTP_SENHA.AsString             := nxSmtpSenha.Value;
+  cdsConfigEmailSOLICITAR_CONFIRMACAO.AsInteger := nxRequerConf.AsInteger;
+
+  cdsConfigEmail.Post;
+  cdsConfigEmail.ApplyUpdates(0);
+end;
+
+procedure TfrmConfiguracao.FormActivate(Sender: TObject);
+var
+  NfeUtil: NFe_Util_2G_Interface;
+  msg: string;
+begin
+  sbStatus.Panels[0].Text := 'v.14/02/2013';
+  try
+    NfeUtil := CoUtil.Create;
+    try
+      msg := NfeUtil.Versao;
+      sbStatus.Panels[1].Text := Copy(msg, 1, Pos('www', msg) - 3);
+    finally
+      NfeUtil := nil;
+    end;
+  except
+    on E: exception do
+    begin
+      if pos('80131040', E.Message) > 0 then
+      begin
+        msg := msg+'=======================ATENCÃO=============================='+#13+#13;
+        msg := msg+'ERRO : ' + E.Message+#13+#13;
+        msg := msg+'A versão da DLL existente na pasta da aplicação não foi registrada no Windows,'+#13;
+        msg := msg+'A aplicação não deve funcionar, queira ver a solução para o erro 80131040 no'+#13;
+        msg := msg+'Guia de Uso da Biblioteca!'+#13+#13;
+        msg := msg+'============================================================';
+        MessageDlg( msg, mtError, [mbOk], 0);
+      end
+      else if (pos('encontrar', E.Message) > 0 ) or (pos('find', E.Message) > 0 ) then
+      begin
+        msg := msg+'=======================ATENCÃO=============================='+#13+#13;
+        msg := msg+'ERRO : ' + E.Message+#13+#13;
+        msg := msg+'O arquivo NFe_Util.dll não foi encontrada na pasta da aplicação.'+#13;
+        msg := msg+'A aplicação não deve funcionar, queira providenciar a cópia do'+#13;
+        msg := msg+'arquivo para a pasta desta aplicação.'+#13+#13;
+        msg := msg+'============================================================';
+        MessageDlg(msg, mtError, [mbOk], 0);
+      end
+      else
+      begin
+        msg := msg+'=======================ATENCÃO=============================='+#13+#13;
+        msg := msg+ 'ERRO : ' + e.Message+#13+#13;
+        msg := msg+'Ocorreu erro inesperado, entre em contato e reporte a ocorrência.'+#13+#13;
+        msg := msg+'============================================================';
+        MessageDlg(msg, mtError, [mbOk], 0);
+      end;
+    end;
+  end;
+
+  TrayIcon.Visibility := [tvVisibleTaskBar, tvVisibleTaskList, tvAutoHide, tvRestoreDbClick];
+  TrayIcon.Active     := True;
+
+  SrvNfe.TCPServer.Active := True;
+  Caption := Format('Configuração NFe e NFSe [ Servidor Ativo - Porta %d ]', [SrvNfe.TCPServer.DefaultPort]);
+end;
+
+procedure TfrmConfiguracao.HabilitarItem(APropItem: TNxPropertyItem; AHabilitar: Boolean);
+var
+  Cond: Boolean;
+  Item: TNxPropertyItem;
+begin
+  Cond := True;
+  if (APropItem is TNxCheckBoxItem) then
+    Cond := (APropItem as TNxCheckBoxItem).State = cbChecked;
+
+  Item := APropItem.GetFirstChild;
+  while Assigned(Item) do
+  begin
+    Item.Enabled := AHabilitar and Cond;
+    HabilitarItem(Item, Item.Enabled);
+    if (Item.Tag = 1) then
+      Item.Enabled := True;
+    Item := Item.GetNextSibling;
+  end;
+end;
+
+procedure TfrmConfiguracao.Habilitar(AHabilitar: Boolean);
+var
+  Item: TNxPropertyItem;
+begin
+  Item := NextInspector1.Items[0];
+  while Assigned(Item) do
+  begin
+    HabilitarItem(Item, AHabilitar);
+    Item := Item.GetNextSibling;
+  end;
+end;
+
+procedure TfrmConfiguracao.actEditarExecute(Sender: TObject);
+begin
+  if SameText(FCertificados.SenhaAdmin, EmptyStr) then
+  begin
+    if (MessageDlg('A senha do administrador ainda náo foi criada, deseja criar agora?', mtConfirmation, [mbYes, mbNo], 0) = mrNo) then
+      raise Exception.Create('Senha não foi criada.');
+
+    pwdSenha.Tag   := 0;
+    pwdSenha.Title := 'Cadastro de senha';
+    pwdSenha.Execute;
+  end
+  else
+  begin
+    pwdSenha.Tag   := 1;
+    pwdSenha.Title := 'Liberação';
+    pwdSenha.Execute;
+  end;
+end;
+
+procedure TfrmConfiguracao.actExcluirExecute(Sender: TObject);
+var
+  Conf: TNxPropertyItem;
+  Cnpj: string;
+begin
+  Conf := ConfigCertificado;
+  if (Conf = nil) then
+    Exit;
+
+  if (MessageDlg('Deseja excluir o certificado?', mtWarning, [mbYes, mbNo], 0) = mrNo) then
+    Exit;
+
+  Cnpj := AnsiReplaceText(Conf.Caption, 'CNPJ: ' , '');
+  FCertificados.ExcluirCertificado( FCertificados.IndexOfCnpj(Cnpj) );
+  FreeAndNil(Conf);
+  FEmEdicao := False;
+  Habilitar(False);
+end;
+
+procedure TfrmConfiguracao.NextInspector1ToolbarClick(Sender: TObject;
+  Item: TNxPropertyItem; ButtonIndex: Integer);
+begin
+  if (Item is TNxCheckBoxItem) then
+    HabilitarItem(Item, (Item as TNxCheckBoxItem).Enabled);
+end;
+
+procedure TfrmConfiguracao.cdsConfigEmailAfterInsert(DataSet: TDataSet);
+begin
+  cdsConfigEmailSMTP_REQUER_SSL.AsInteger := 0;
+  cdsConfigEmailSOLICITAR_CONFIRMACAO.AsInteger := 0;
+  cdsConfigEmailBASE.AsInteger := Random(999);
+end;
+
+procedure TfrmConfiguracao.cdsConfigEmailSMTP_SENHAGetText(Sender: TField;
+  var Text: String; DisplayText: Boolean);
+begin
+  Text := Descriptografar( cdsConfigEmailBASE.AsInteger
+                         , 'nfeconfig'
+                         , Sender.AsString );
+end;
+
+procedure TfrmConfiguracao.cdsConfigEmailSMTP_SENHASetText(Sender: TField;
+  const Text: String);
+begin
+  Sender.AsString := Criptografar( cdsConfigEmailBASE.AsInteger
+                                 , 'nfeconfig'
+                                 , Text );
+end;
+
+procedure TfrmConfiguracao.SalvarDados(ACertificado: ICertificadoDigital);
+var
+  Id: String;
+  Item: TNxPropertyItem;
+begin
+  Id := ACertificado.CnpjTitular;
+  Item := nxCertificados.ItemByName['nxCertificado' + Id];
+  if Assigned(Item) then
+  begin
+    // Servidor NF-e
+    Item := nxCertificados.ItemByName['nxServidorNFe' + Id];
+    if Assigned(Item) then
+    begin
+      if Item.AsBoolean then
+        ACertificado.UtilizaNFe := 'S'
+      else
+        ACertificado.UtilizaNFe := 'N';
+      //TNxCheckBoxItem(Item).State := cbChecked;
+      ACertificado.ServidorNFe.WebService   := Item.ItemByName['nxNFeWebService' + Id].Value;
+      ACertificado.ServidorNFe.UF           := Item.ItemByName['nxNFeUF' + Id].Value;
+      ACertificado.ServidorNFe.Ambiente     := TNxComboBoxItem(Item.ItemByName['nxAmbiente' + Id]).ItemIndex;
+      ACertificado.ServidorNFe.Contingencia := Item.ItemByName['nxContingencia' + Id].Value;
+      ACertificado.ServidorNFe.TempoEspera  := StrToIntDef(Item.ItemByName['nxNFeTempoEspera' + Id].Value, 15);
+      ACertificado.ServidorNFe.Licenca      := Item.ItemByName['nxNFeLicensa' + Id].Value;
+    end;
+  end;
+end;
+
+procedure TfrmConfiguracao.pnlBotoesClickCancel(Sender: TObject);
+begin
+  if FEmEdicao then
+    if (MessageBox(0, 'Sua alteração será cancelada. Deseja continuar?', 'Confirmação', MB_ICONWARNING or MB_YESNO) = idYes) then
+    begin
+      FCertificados.CarregarRegistro;
+      CarregarCertificados;
+    end;
+
+  FEmEdicao := False;
+  Habilitar(False);
+
+  FSairAplicacao := (Sender = miFechar);
+  Close;
+end;
+
+procedure TfrmConfiguracao.actIncluirExecute(Sender: TObject);
+var
+  Frm: TfrmInfCnpj;
+  SelCertificado: ICertificadoDigital;
+begin
+  Frm := TfrmInfCnpj.Create(nil);
+  try
+    Frm.Certificados := FCertificados;
+    if Frm.SelecionarCertificado(SelCertificado) then
+    begin
+      FCertificados.AdicionaCertificado(SelCertificado);
+      AdicionarCertificado(SelCertificado);
+    end;
+  finally
+    FreeAndNil(Frm);
+  end;
+end;
+
+function TfrmConfiguracao.ConfigCertificado: TNxPropertyItem;
+var
+  Item: TNxPropertyItem;
+begin
+  Result := nil;
+  Item   := NextInspector1.SelectedItem;
+  while Assigned(Item) do
+  begin
+    if AnsiStartsText('CNPJ', Item.Caption) then
+    begin
+      Result := Item;
+      Break;
+    end
+    else
+      Item := Item.ParentItem;
+  end;
+end;
+
+procedure TfrmConfiguracao.actExcluirUpdate(Sender: TObject);
+begin
+  actExcluir.Enabled := FEmEdicao and (ConfigCertificado <> nil);
+end;
+
+procedure TfrmConfiguracao.actEditarUpdate(Sender: TObject);
+begin
+  actEditar.Enabled := not FEmEdicao;
+end;
+
+procedure TfrmConfiguracao.actIncluirUpdate(Sender: TObject);
+begin
+  actIncluir.Enabled := FEmEdicao;
+end;
+
+procedure TfrmConfiguracao.pwdSenhaOk(Sender: TObject; Password: String;
+  var Accept: Boolean);
+begin
+  Accept := False;
+  if pwdSenha.Tag = 0 then
+  begin
+    if SameText(Trim(Password), EmptyStr) then
+      MessageDlg('A senha não pode ser em branco.', mtError, [mbOK], 0)
+    else if (Length(Trim(Password)) <= 6) then
+      MessageDlg('A senha não pode ter menos que 6 caracteres.', mtError, [mbOK], 0)
+    else
+    begin
+      FCertificados.SenhaAdmin := Password;
+      FCertificados.SalvarRegistro;
+      Accept := True;
+    end;
+  end
+  else
+  begin
+    if SameText(FCertificados.SenhaAdmin, Password) then
+    begin
+       FEmEdicao := True;
+       Habilitar(True);
+       Accept := True;
+    end
+    else
+      MessageDlg('Senha inválida.', mtError, [mbOK], 0)
+  end;
+end;
+
+procedure TfrmConfiguracao.aclBotoesUpdate(Action: TBasicAction;
+  var Handled: Boolean);
+begin
+  pnlBotoes.BtnOK.Enabled := FEmEdicao;
+end;
+
+procedure TfrmConfiguracao.pnlBotoesClickOk(Sender: TObject);
+begin
+  SalvarDados;
+  FEmEdicao := False;
+  Habilitar(False);
+end;
+
+procedure TfrmConfiguracao.nxSmtpConfPadraoSelect(Sender: TNxPropertyItem);
+begin
+  case TNxComboBox(Sender.Editor).ItemIndex of
+    0: // Gmail
+      begin
+        nxSmtpCliente.Value := 'smtp.gmail.com';
+        nxSmtpPorta.AsInteger := 587;
+        nxSmtpRequerSSL.AsInteger := 1;
+      end;
+    1: // Hotmail
+      begin
+        nxSmtpCliente.Value := 'smtp.live.com';
+        nxSmtpPorta.AsInteger := 587;
+        nxSmtpRequerSSL.AsInteger := 1;
+      end;
+    2: // IG
+      begin
+        nxSmtpCliente.Value := 'usuario@ig.com.br';
+        nxSmtpPorta.AsInteger := 587;
+        nxSmtpRequerSSL.AsInteger := 1;
+      end;
+    3: // Yahoo
+      begin
+        nxSmtpCliente.Value := 'smtp.yahoo.com';
+        nxSmtpPorta.AsInteger := 25;
+        nxSmtpRequerSSL.AsInteger := 0;
+      end;
+    4: // Yahoo BR
+      begin
+        nxSmtpCliente.Value := 'smtp.mail.yahoo.com.br';
+        nxSmtpPorta.AsInteger := 25;
+        nxSmtpRequerSSL.AsInteger := 0;
+
+      end;
+    5: // UOL
+      begin
+        nxSmtpCliente.Value := 'smtp.uol.com.br';
+        nxSmtpPorta.AsInteger := 25;
+        nxSmtpRequerSSL.AsInteger := 1;
+
+      end;
+    6: // BOL
+      begin
+        nxSmtpCliente.Value := 'smtp.bol.com.br';
+        nxSmtpPorta.AsInteger := 25;
+        nxSmtpRequerSSL.AsInteger := 1;
+      end;
+  end;
+end;
+
+procedure TfrmConfiguracao.OnStatusUpdate(Sender: TObject);
+begin
+  actStatusWebService.Enabled   := ConfigCertificado <> nil;
+  actStatusContingencia.Enabled := actStatusWebService.Enabled;
+  BtnInternet.Enabled := actStatusWebService.Enabled;
+end;
+
+procedure TfrmConfiguracao.actStatusWebServiceExecute(Sender: TObject);
+var
+  SelCertificado: ICertificadoDigital;
+  Conf: TNxPropertyItem;
+  Cnpj: string;
+begin
+  Conf := ConfigCertificado;
+  if (Conf = nil) then
+    Exit;
+
+  Cnpj := AnsiReplaceText(Conf.Caption, 'CNPJ: ' , '');  
+  SelCertificado := FCertificados.CertificadoCnpj[Cnpj];
+  SalvarDados(SelCertificado);
+  ShowMessage(SelCertificado.ServidorNFe.VerificarStatus(False));
+end;
+
+procedure TfrmConfiguracao.actStatusContingenciaExecute(Sender: TObject);
+var
+  SelCertificado: ICertificadoDigital;
+  Conf: TNxPropertyItem;
+  Cnpj: string;
+begin
+  Conf := ConfigCertificado;
+  if (Conf = nil) then
+    Exit;
+
+  Cnpj := AnsiReplaceText(Conf.Caption, 'CNPJ: ' , '');  
+  SelCertificado := FCertificados.CertificadoCnpj[Cnpj];
+  SalvarDados(SelCertificado);
+  ShowMessage(SelCertificado.ServidorNFe.VerificarStatus(True));
+end;
+
+procedure TfrmConfiguracao.actMensagensErroExecute(Sender: TObject);
+begin
+  frmMensagens := TfrmMensagens.Create(nil);
+  try
+    frmMensagens.ShowModal;
+  finally
+    FreeAndNil(frmMensagens);
+  end;
+end;
+
+procedure TfrmConfiguracao.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  TrayIcon.Active := False;
+//  FCertificados.
+end;
+
+procedure TfrmConfiguracao.FormCloseQuery(Sender: TObject;
+  var CanClose: Boolean);
+begin
+  CanClose := FSairAplicacao;
+  if not CanClose then
+    TrayIcon.HideApplication;
+end;
+
+procedure TfrmConfiguracao.WMQueryEndSession(var Msg: TWMQueryEndSession);
+begin
+  FSairAplicacao := True;
+end;
+
+procedure TfrmConfiguracao.Abrirconfigurao1Click(Sender: TObject);
+begin
+  TrayIcon.ShowApplication;
+  Habilitar(False); 
+end;
+
+end.
